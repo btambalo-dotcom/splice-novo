@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Meus Mapas de Trabalho{% endblock %}
+{% block content %}
+<h2>Meus Mapas de Trabalho</h2>
+{% if maps %}
+  <ul>
+    {% for m in maps %}
+      <li>
+        <strong>{{ m.title }}</strong> — 
+        <a href="{{ url_for('workmap_download', wm_id=m.id) }}">Baixar PDF</a>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>Nenhum mapa disponível para você ainda.</p>
+{% endif %}
+{% endblock %}

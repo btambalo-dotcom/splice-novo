@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Novo Registro
+<script>
+(function(){
+  const input = document.getElementById('photos-input');
+  if(!input) return;
+  input.addEventListener('change', function(){
+    const allowed = ['png','jpg','jpeg','gif','webp'];
+    const files = Array.from(this.files || []);
+    if(files.length > 6){
+      alert('Você selecionou ' + files.length + ' arquivos. O máximo é 6.');
+      this.value = '';
+      return;
+    }
+    for(const f of files){
+      const ext = (f.name.split('.').pop() || '').toLowerCase();
+      if(!allowed.includes(ext)){
+        alert('Arquivo inválido: ' + f.name + '. Permitidos: ' + allowed.join(', '));
+        this.value='';
+        return;
+      }
+    }
+  });
+})();
+</script>
+
+{% endblock %}
+{% block content %}
+<h1>Novo Registro</h1>
+<form method="post" enctype="multipart/form-data">
+  <label>Nome do dispositivo</label>
+  <input type="text" name="device_name" placeholder="Ex.: OTE-1234" required>
+  <label>Número de fusões</label>
+  <input type="number" name="fusion_count" min="0" step="1" required>
+  <label>Mapa de Trabalho</label>
+
+  <label>Mapa de Trabalho</label>
+  <select name="work_map_id" required>
+    <option value="">-- Selecione um mapa --</option>
+    {% for m in maps %}
+      <option value="{{ m.id }}">{{ m.title }}</option>
+    {% endfor %}
+  </select>
+  {% if not maps %}
+    <p style="color:#a00; font-size:0.95em;">Nenhum mapa disponível para este usuário. Peça ao administrador para conceder acesso em <strong>Admin → Mapas de Trabalho</strong>.</p>
+  {% endif %}
+
+<label>Fotos (até 6 imagens)</label>
+  <input type="file" name="photos" id="photos-input" multiple accept=".png,.jpg,.jpeg,.gif,.webp" onchange="validatePhotos(this)" accept="image/*" multiple>
+  <small>Tipos permitidos: png, jpg, jpeg, gif, webp</small>
+  <div style="margin-top:12px;">
+    <button class="btn" type="submit">Salvar</button>
+    <a class="btn secondary" href="{{ url_for('dashboard') }}">Cancelar</a>
+  </div>
+
+<script>
+function validatePhotos(input) {
+  if(input.files.length>6) {
+    alert("Você só pode enviar até 6 fotos.");
+    input.value="";
+    return;
+  }
+  for(let f of input.files){
+    if(!f.type.match(/^image\//)){
+      alert("Apenas imagens são permitidas.");
+      input.value="";
+      return;
+    }
+  }
+}
+</script>
+
+</form>
+
+<script>
+(function(){
+  const input = document.getElementById('photos-input');
+  if(!input) return;
+  input.addEventListener('change', function(){
+    const allowed = ['png','jpg','jpeg','gif','webp'];
+    const files = Array.from(this.files || []);
+    if(files.length > 6){
+      alert('Você selecionou ' + files.length + ' arquivos. O máximo é 6.');
+      this.value = '';
+      return;
+    }
+    for(const f of files){
+      const ext = (f.name.split('.').pop() || '').toLowerCase();
+      if(!allowed.includes(ext)){
+        alert('Arquivo inválido: ' + f.name + '. Permitidos: ' + allowed.join(', '));
+        this.value='';
+        return;
+      }
+    }
+  });
+})();
+</script>
+
+{% endblock %}
