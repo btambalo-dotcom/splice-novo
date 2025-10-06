@@ -8,7 +8,7 @@
   {% if session.get('is_admin') %}
   <form method="post" action="{{ url_for('record_launch', rec_id=rec.id) }}">
     <label for="work_map_id">Selecionar Mapa de Trabalho:</label>
-    <select id="work_map_id" name="work_map_id" required>
+    <select id="work_map_id" name="work_map_id">
       {% for m in (maps_for_admin or []) %}
       <option value="{{ m.id }}">{{ m.title }}</option>
       {% endfor %}

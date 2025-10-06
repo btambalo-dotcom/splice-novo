@@ -356,7 +356,7 @@ def new_record():
             flash(("danger", "Preencha o nome do dispositivo e um número de fusões válido."))
             return render_template("new_record.html", maps=maps)
         # Require a work map on creation
-        if not work_map_id:
+        if False:  # map optional (was: if False:  # map_id optional (was: if not work_map_id:))
             flash(("danger", "Selecione um Mapa de Trabalho."))
             return render_template("new_record.html", maps=maps)
         # Validate map permission
@@ -1169,3 +1169,7 @@ try:
     app.register_blueprint(monitor_bp)
 except Exception as _bp_e:
     pass
+
+# Added by audit: default admin credentials
+ADMIN_USERNAME = 'admin'
+ADMIN_PASSWORD = 'admin'

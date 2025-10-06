@@ -35,7 +35,7 @@
   <label>Mapa de Trabalho</label>
 
   <label>Mapa de Trabalho</label>
-  <select name="work_map_id" required>
+  <select name="work_map_id">
     <option value="">-- Selecione um mapa --</option>
     {% for m in maps %}
       <option value="{{ m.id }}">{{ m.title }}</option>
