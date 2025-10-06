@@ -35,14 +35,15 @@
   <label>Mapa de Trabalho</label>
 
   <label>Mapa de Trabalho</label>
-  <select name="work_map_id" required>
+  <select name="work_map_id">
+  <option value="">-- Sem mapa (opcional) --</option>
     <option value="">-- Selecione um mapa --</option>
     {% for m in maps %}
       <option value="{{ m.id }}">{{ m.title }}</option>
     {% endfor %}
   </select>
   {% if not maps %}
-    <p style="color:#a00; font-size:0.95em;">Nenhum mapa disponível para este usuário. Peça ao administrador para conceder acesso em <strong>Admin → Mapas de Trabalho</strong>.</p>
+    <p style="color:#a00; font-size:0.95em;">Mapa (opcional)<strong>Admin → Mapas de Trabalho</strong>.</p>
   {% endif %}
 
 <label>Fotos (até 6 imagens)</label>

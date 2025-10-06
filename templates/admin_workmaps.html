@@ -42,6 +42,7 @@
     <div>
       <label>Mapa</label>
       <select name="work_map_id">
+  <option value="">-- Sem mapa (opcional) --</option>
         {% for m in maps %}
           <option value="{{ m.id }}">{{ m.title }}</option>
         {% endfor %}

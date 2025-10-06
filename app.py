@@ -351,14 +351,12 @@ def new_record():
     if request.method == "POST":
         device_name = request.form.get("device_name","").strip()
         fusion_count = request.form.get("fusion_count","").strip()
-        work_map_id = request.form.get("work_map_id", type=int)
+        work_map_id = request.form.get("work_map_id", type=int)  # (opcional)
         if not device_name or not fusion_count.isdigit():
             flash(("danger", "Preencha o nome do dispositivo e um número de fusões válido."))
             return render_template("new_record.html", maps=maps)
         # Require a work map on creation
-        if not work_map_id:
-            flash(("danger", "Selecione um Mapa de Trabalho."))
-            return render_template("new_record.html", maps=maps)
+        # [patch] mapa opcional: bloco removido
         # Validate map permission
         if not session.get("is_admin") and not any(m["id"] == work_map_id for m in maps):
             flash(("danger", "Você não tem acesso a esse Mapa de Trabalho."))
@@ -940,7 +938,7 @@ def admin_workmaps_grant():
     if not session.get('is_admin'):
         abort(403)
     user_id = request.form.get('user_id', type=int)
-    work_map_id = request.form.get('work_map_id', type=int)
+    work_map_id = request.form.get('work_map_id', type=int)  # (opcional)
     action = request.form.get('action','grant')
     with closing(get_db()) as db:
         if action == 'revoke':
@@ -973,7 +971,7 @@ def record_launch(rec_id):
     uid = session.get('user_id')
     if not uid:
         return redirect(url_for('login'))
-    work_map_id = request.form.get('work_map_id', type=int)
+    work_map_id = request.form.get('work_map_id', type=int)  # (opcional)
     # Only admin can mark as launched
     if not session.get('is_admin'):
         abort(403)
