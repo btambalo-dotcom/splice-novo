@@ -1177,3 +1177,142 @@ def _accept_admin_plaintext(stored_password: str, provided_password: str, userna
     except Exception:
         pass
     return False
+
+
+# === devices_feature_patch ===
+import sqlite3
+from flask import jsonify
+
+def _ensure_devices_schema():
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS maps (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT,
+        is_active INTEGER DEFAULT 1
+    );""")
+    cur.execute("""CREATE TABLE IF NOT EXISTS devices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        map_id INTEGER,
+        code TEXT,
+        address TEXT,
+        ports INTEGER,
+        feet INTEGER,
+        splicer TEXT,
+        status TEXT,
+        lat REAL,
+        lng REAL,
+        created_by TEXT,
+        updated_by TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT,
+        FOREIGN KEY(map_id) REFERENCES maps(id)
+    );""")
+    cur.execute("""CREATE TABLE IF NOT EXISTS device_users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        device_id INTEGER,
+        username TEXT,
+        UNIQUE(device_id, username)
+    );""")
+    conn.commit()
+    conn.close()
+
+try:
+    DB_PATH
+except NameError:
+    DB_PATH = 'database.db'
+
+try:
+    _ensure_devices_schema()
+except Exception:
+    pass
+
+@app.route('/admin/devices', methods=['GET','POST'])
+@login_required
+def admin_devices():
+    if not is_admin(current_user):
+        abort(403)
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    if request.method == 'POST':
+        code = request.form.get('code')
+        map_id = request.form.get('map_id') or None
+        address = request.form.get('address')
+        ports = request.form.get('ports') or None
+        feet = request.form.get('feet') or None
+        splicer = request.form.get('splicer')
+        status = request.form.get('status')
+        lat = request.form.get('lat') or None
+        lng = request.form.get('lng') or None
+        cur.execute("INSERT INTO devices (map_id, code, address, ports, feet, splicer, status, lat, lng, created_by) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    (map_id, code, address, ports, feet, splicer, status, lat, lng, current_user.username))
+        conn.commit()
+    cur.execute("SELECT id, name FROM maps WHERE is_active=1")
+    maps = cur.fetchall()
+    cur.execute("SELECT id, code, map_id, address, status FROM devices ORDER BY id DESC")
+    devices = cur.fetchall()
+    conn.close()
+    return render_template('admin_devices.html', maps=maps, devices=devices)
+
+@app.route('/map/<int:map_id>')
+@login_required
+def map_view(map_id):
+    return render_template('map_view.html', map_id=map_id)
+
+@app.route('/api/maps/<int:map_id>/devices')
+@login_required
+def api_devices_for_map(map_id):
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT id, code, address, ports, feet, splicer, status, lat, lng FROM devices WHERE (map_id=? OR ? IS NULL)", (map_id, map_id))
+    rows = cur.fetchall()
+    conn.close()
+    items = []
+    for r in rows:
+        items.append(dict(id=r[0], code=r[1], address=r[2], ports=r[3], feet=r[4], splicer=r[5], status=r[6], lat=r[7], lng=r[8]))
+    return jsonify(items)
+
+@app.route('/device/<int:device_id>', methods=['GET','POST'])
+@login_required
+def device_edit(device_id):
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    if request.method == 'POST':
+        allowed = is_admin(current_user)
+        if not allowed:
+            cur.execute("SELECT COUNT(*) FROM device_users WHERE device_id=? AND username=?", (device_id, current_user.username))
+            allowed = cur.fetchone()[0] > 0
+        if not allowed:
+            conn.close()
+            abort(403)
+        fields = ['code','address','ports','feet','splicer','status','lat','lng','map_id']
+        updates = ', '.join([f"{f}=?" for f in fields])
+        values = [request.form.get(f) for f in fields]
+        values.extend([current_user.username, device_id])
+        cur.execute(f"UPDATE devices SET {updates}, updated_by=?, updated_at=datetime('now') WHERE id=?", values)
+        conn.commit()
+    cur.execute("SELECT id, map_id, code, address, ports, feet, splicer, status, lat, lng FROM devices WHERE id=?", (device_id,))
+    row = cur.fetchone()
+    cur.execute("SELECT id, name FROM maps WHERE is_active=1")
+    maps = cur.fetchall()
+    cur.execute("SELECT username FROM device_users WHERE device_id=?", (device_id,))
+    assigned = [r[0] for r in cur.fetchall()]
+    conn.close()
+    if not row:
+        abort(404)
+    device = dict(id=row[0], map_id=row[1], code=row[2], address=row[3], ports=row[4], feet=row[5], splicer=row[6], status=row[7], lat=row[8], lng=row[9])
+    return render_template('device_edit.html', device=device, maps=maps, assigned=assigned)
+
+@app.route('/admin/devices/<int:device_id>/assign', methods=['POST'])
+@login_required
+def assign_user_to_device(device_id):
+    if not is_admin(current_user):
+        abort(403)
+    username = request.form.get('username')
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("INSERT OR IGNORE INTO device_users (device_id, username) VALUES (?,?)", (device_id, username))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('device_edit', device_id=device_id))

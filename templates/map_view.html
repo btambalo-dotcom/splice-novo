@@ -1,0 +1,39 @@
+
+{% extends "base.html" %}
+{% block content %}
+<h2>Mapa • {{ map_id }}</h2>
+
+<div id="legend" style="position:absolute; right:12px; top:12px; z-index:400; background:#fff; padding:8px 10px; border-radius:6px; box-shadow:0 1px 4px rgba(0,0,0,0.2); font-size:14px;">
+  <div style="display:flex; align-items:center; gap:6px;"><span style="width:12px; height:12px; background:#2ecc71; border-radius:50%; display:inline-block;"></span> Feito</div>
+  <div style="display:flex; align-items:center; gap:6px;"><span style="width:12px; height:12px; background:#3498db; border-radius:50%; display:inline-block;"></span> Pendente</div>
+</div>
+
+<div id="map" style="height: 70vh;"></div>
+<script>
+const map = L.map('map').setView([39.5,-98.35], 5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+fetch(`{{ url_for('api_devices_for_map', map_id=map_id) }}`)
+  .then(r => r.json())
+  .then(items => {
+    if(items.length===0){ return; }
+    const bounds = [];
+    items.forEach(d => {
+      if(d.lat && d.lng){
+        const color = (d.status || '').toLowerCase();
+const isDone = ['feito','ok','done','completed','concluido','concluído'].includes(color);
+const marker = L.circleMarker([d.lat, d.lng], {radius: 8, color: isDone ? '#2ecc71' : '#3498db', fillColor: isDone ? '#2ecc71' : '#3498db', fillOpacity: 0.9}).addTo(map);
+const html = `<b>${d.code || 'Device'}</b><br/>
+          Address: ${d.address || '-'}<br/>
+          Ports: ${d.ports || '-'} &nbsp; Feet: ${d.feet || '-'}<br/>
+          Splicer: ${d.splicer || '-'}<br/>
+          Status: ${d.status || '-'}<br/>
+          <a href="/device/${d.id}">View</a>`;
+        marker.bindPopup(html);
+        bounds.push([d.lat, d.lng]);
+      }
+    });
+    if(bounds.length>0){ map.fitBounds(bounds); }
+  });
+</script>
+{% endblock %}

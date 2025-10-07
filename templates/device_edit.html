@@ -1,0 +1,98 @@
+
+{% extends "base.html" %}
+{% block content %}
+<h2>Dispositivo #{{ device.id }}</h2>
+<form method="post" class="mb-3">
+  <div class="row g-2">
+    <div class="col-md-3">
+      <label class="form-label">Código</label>
+      <input name="code" class="form-control" value="{{ device.code or '' }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Endereço</label>
+      <input name="address" class="form-control" value="{{ device.address or '' }}">
+    </div>
+    <div class="col-md-1">
+      <label class="form-label">Ports</label>
+      <input name="ports" type="number" class="form-control" value="{{ device.ports or '' }}">
+    </div>
+    <div class="col-md-1">
+      <label class="form-label">Feet</label>
+      <input name="feet" type="number" class="form-control" value="{{ device.feet or '' }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Splicer</label>
+      <input name="splicer" class="form-control" value="{{ device.splicer or '' }}">
+    </div>
+    <div class="col-md-1">
+      <label class="form-label">Status</label>
+      <input name="status" class="form-control" value="{{ device.status or '' }}">
+    </div>
+  </div>
+  <div class="row g-2 mt-2">
+    <div class="col-md-2">
+      <label class="form-label">Latitude</label>
+      <input name="lat" class="form-control" value="{{ device.lat or '' }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Longitude</label>
+      <input name="lng" class="form-control" value="{{ device.lng or '' }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Mapa</label>
+      <select name="map_id" class="form-select">
+        <option value="">-- Sem mapa --</option>
+        {% for m in maps %}
+          <option value="{{ m[0] }}" {% if device.map_id==m[0] %}selected{% endif %}>{{ m[1] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2 align-self-end">
+      <button class="btn btn-primary w-100">Salvar</button>
+    </div>
+  </div>
+</form>
+
+<div class="row g-2 mt-2">
+  <div class="col-md-3">
+    <a class="btn btn-outline-primary w-100" target="_blank"
+       href="https://www.google.com/maps/search/?api=1&query={{ device.lat }},{{ device.lng }}">Abrir no Google Maps</a>
+  </div>
+  <div class="col-md-3">
+    <a class="btn btn-outline-secondary w-100" target="_blank"
+       href="http://maps.apple.com/?ll={{ device.lat }},{{ device.lng }}">Abrir no Apple Maps</a>
+  </div>
+</div>
+
+
+<h5>Usuários com permissão para editar</h5>
+<ul>
+  {% for u in assigned %}
+    <li>{{ u }}</li>
+  {% endfor %}
+  {% if not assigned %}<li>Ninguém</li>{% endif %}
+</ul>
+
+{% if current_user.is_admin %}
+<form method="post" action="{{ url_for('assign_user_to_device', device_id=device.id) }}" class="row g-2 mt-2">
+  <div class="col-md-3">
+    <input name="username" class="form-control" placeholder="Usuário para permitir edição">
+  </div>
+  <div class="col-md-2">
+    <button class="btn btn-outline-secondary">Permitir</button>
+  </div>
+</form>
+
+<div class="row g-2 mt-2">
+  <div class="col-md-3">
+    <a class="btn btn-outline-primary w-100" target="_blank"
+       href="https://www.google.com/maps/search/?api=1&query={{ device.lat }},{{ device.lng }}">Abrir no Google Maps</a>
+  </div>
+  <div class="col-md-3">
+    <a class="btn btn-outline-secondary w-100" target="_blank"
+       href="http://maps.apple.com/?ll={{ device.lat }},{{ device.lng }}">Abrir no Apple Maps</a>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}
