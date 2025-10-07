@@ -242,8 +242,6 @@ def ensure_schema():
     except Exception as e:
         print("ensure_schema warning:", e)
 
-@app.before_request
-
 try:
     DB_PATH
 except NameError:
