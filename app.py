@@ -701,3 +701,9 @@ def admin_db_init():
     except Exception as e:
         flash(f'Erro ao inicializar DB: {e}', 'danger')
     return redirect(url_for('admin_maps') if 'admin_maps' in globals() else url_for('index'))
+
+
+# --- Home redirects to dashboard ---
+@app.route('/')
+def home():
+    return redirect(url_for('dashboard'))
