@@ -1,6 +1,7 @@
 import os, sqlite3
 from contextlib import closing
 from flask import Flask, request, redirect, url_for, render_template, flash, session, send_from_directory, abort, Response
+from werkzeug.routing import BuildError
 
 # === auth_fallback_import ===
 try:
@@ -704,6 +705,19 @@ def admin_db_init():
 
 
 # --- Home redirects to dashboard ---
+
+
+# --- Safe home: dashboard -> login -> plain message ---
 @app.route('/')
 def home():
-    return redirect(url_for('dashboard'))
+    try:
+        return redirect(url_for('dashboard'))
+    except BuildError:
+        try:
+            return redirect(url_for('login'))
+        except BuildError:
+            return "<h3>App online</h3><p>Crie a rota 'dashboard' ou 'login'.</p>", 200
+
+@app.route('/health')
+def health():
+    return 'ok', 200
