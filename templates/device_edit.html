@@ -140,3 +140,35 @@
   {% endfor %}
   </tbody>
 </table>
+
+<hr class="my-4"/>
+<h4>Fotos do dispositivo</h4>
+<form method="post" action="{{ url_for('device_upload_photos', device_id=device.id) }}" enctype="multipart/form-data" class="row g-2">
+  <div class="col-md-6">
+    <input type="file" name="photos" accept=".jpg,.jpeg,.png,.gif,.webp" class="form-control" multiple>
+    <div class="form-text">Envie até 6 imagens por dispositivo.</div>
+  </div>
+  <div class="col-md-4">
+    <input name="captions" class="form-control" placeholder="Legenda (opcional)">
+  </div>
+  <div class="col-md-2">
+    <button class="btn btn-outline-primary w-100">Enviar</button>
+  </div>
+</form>
+
+<div class="row mt-3 g-3">
+{% set _=[] %}
+{% for p in (photos or []) %}
+  <div class="col-6 col-md-3">
+    <div class="card">
+      <img src="{{ url_for('static', filename='uploads/' + p[1]) }}" class="card-img-top" alt="">
+      <div class="card-body p-2">
+        <small class="text-muted">{{ p[2] or '' }}</small>
+        <form method="post" action="{{ url_for('device_delete_photo', device_id=device.id, photo_id=p[0]) }}">
+          <button class="btn btn-sm btn-outline-danger w-100 mt-2">Excluir</button>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endfor %}
+</div>

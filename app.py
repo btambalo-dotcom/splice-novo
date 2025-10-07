@@ -1306,7 +1306,10 @@ def device_edit(device_id):
     cur = sqlite3.connect(DB_PATH).cursor()
     cur.execute("SELECT id, task_type, notes, status FROM device_tasks WHERE device_id=? ORDER BY id DESC", (device_id,))
     tasks = cur.fetchall()
-    return render_template('device_edit.html', device=device, maps=maps, assigned=assigned, tasks=tasks)
+        cur = sqlite3.connect(DB_PATH).cursor()
+    cur.execute("SELECT id, filename, caption FROM device_photos WHERE device_id=? ORDER BY id DESC", (device_id,))
+    photos = cur.fetchall()
+    return render_template('device_edit.html', device=device, maps=maps, assigned=assigned, tasks=tasks, photos=photos)
 
 @app.route('/admin/devices/<int:device_id>/assign', methods=['POST'])
 @login_required
@@ -1435,3 +1438,170 @@ def admin_devices_import():
     conn.close()
     flash(f'Importados {count} dispositivos do CSV.', 'success')
     return redirect(url_for('admin_devices'))
+
+
+# === maps_photos_reports_patch ===
+import os, csv, sqlite3, secrets
+from flask import send_file, make_response
+from werkzeug.utils import secure_filename
+
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+ALLOWED_EXTENSIONS = {'png','jpg','jpeg','gif','webp'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
+
+def _ensure_maps_schema():
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS maps (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT,
+        is_active INTEGER DEFAULT 1
+    );""")
+    conn.commit(); conn.close()
+
+def _ensure_photos_schema():
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS device_photos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        device_id INTEGER NOT NULL,
+        filename TEXT NOT NULL,
+        caption TEXT,
+        created_by TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+    );""")
+    conn.commit(); conn.close()
+
+try:
+    _ensure_maps_schema()
+    _ensure_photos_schema()
+except Exception:
+    pass
+
+# --- Admin maps create/list ---
+@app.route('/admin/maps', methods=['GET','POST'])
+@login_required
+def admin_maps():
+    if not is_admin(current_user):
+        abort(403)
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    if request.method == 'POST':
+        name = request.form.get('name')
+        description = request.form.get('description')
+        cur.execute("INSERT INTO maps (name, description, is_active) VALUES (?,?,1)", (name, description))
+        conn.commit()
+    cur.execute("SELECT id, name, description, is_active FROM maps ORDER BY id DESC")
+    maps = cur.fetchall()
+    conn.close()
+    return render_template('admin_maps.html', maps=maps)
+
+# --- Device photos upload (max 6) ---
+@app.route('/device/<int:device_id>/upload', methods=['POST'])
+@login_required
+def device_upload_photos(device_id):
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    # permission: admin or assigned
+    allowed = 1 if is_admin(current_user) else 0
+    if not allowed:
+        cur.execute("SELECT COUNT(*) FROM device_users WHERE device_id=? AND username=?", (device_id, current_user.username))
+        allowed = 1 if cur.fetchone()[0] > 0 else 0
+    if not allowed:
+        conn.close(); abort(403)
+
+    files = request.files.getlist('photos')
+    captions = request.form.getlist('captions')
+    # count existing
+    cur.execute("SELECT COUNT(*) FROM device_photos WHERE device_id=?", (device_id,))
+    existing = cur.fetchone()[0]
+    remaining = max(0, 6 - existing)
+    saved = 0
+    for i, f in enumerate(files[:remaining]):
+        if f and allowed_file(f.filename):
+            filename = secure_filename(f.filename)
+            ext = filename.rsplit('.',1)[1].lower()
+            newname = f"{device_id}_{secrets.token_hex(6)}.{ext}"
+            path = os.path.join(UPLOAD_FOLDER, newname)
+            f.save(path)
+            caption = captions[i] if i < len(captions) else None
+            cur.execute("INSERT INTO device_photos (device_id, filename, caption, created_by) VALUES (?,?,?,?)",
+                        (device_id, newname, caption, current_user.username))
+            saved += 1
+    conn.commit(); conn.close()
+    flash(f'Upload concluído: {saved} arquivo(s).', 'success')
+    return redirect(url_for('device_edit', device_id=device_id))
+
+@app.route('/device/<int:device_id>/photo/<int:photo_id>/delete', methods=['POST'])
+@login_required
+def device_delete_photo(device_id, photo_id):
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    allowed = 1 if is_admin(current_user) else 0
+    if not allowed:
+        cur.execute("SELECT COUNT(*) FROM device_users WHERE device_id=? AND username=?", (device_id, current_user.username))
+        allowed = 1 if cur.fetchone()[0] > 0 else 0
+    if not allowed:
+        conn.close(); abort(403)
+    cur.execute("SELECT filename FROM device_photos WHERE id=? AND device_id=?", (photo_id, device_id))
+    row = cur.fetchone()
+    if row:
+        filepath = os.path.join(UPLOAD_FOLDER, row[0])
+        try:
+            if os.path.exists(filepath):
+                os.remove(filepath)
+        except Exception:
+            pass
+        cur.execute("DELETE FROM device_photos WHERE id=?", (photo_id,))
+        conn.commit()
+    conn.close()
+    return redirect(url_for('device_edit', device_id=device_id))
+
+# --- Reports by map ---
+@app.route('/map/<int:map_id>/report')
+@login_required
+def map_report(map_id):
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT id, name, description FROM maps WHERE id=?", (map_id,))
+    map_row = cur.fetchone()
+    cur.execute("SELECT id, code, address, ports, feet, splicer, status, lat, lng FROM devices WHERE (map_id=? OR ? IS NULL) ORDER BY id", (map_id, map_id))
+    devices = cur.fetchall()
+    # totals
+    total = len(devices)
+    done = 0
+    for d in devices:
+        st = (d[6] or '').lower()
+        if st in ('feito','ok','done','completed','concluido','concluído'):
+            done += 1
+    pend = total - done
+    conn.close()
+    return render_template('map_report.html', map_row=map_row, devices=devices, total=total, done=done, pend=pend)
+
+@app.route('/map/<int:map_id>/report.csv')
+@login_required
+def map_report_csv(map_id):
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT id, name FROM maps WHERE id=?", (map_id,))
+    m = cur.fetchone()
+    cur.execute("SELECT id, code, address, ports, feet, splicer, status, lat, lng FROM devices WHERE (map_id=? OR ? IS NULL) ORDER BY id", (map_id, map_id))
+    rows = cur.fetchall()
+    conn.close()
+    headers = ['id','code','address','ports','feet','splicer','status','lat','lng']
+    import io
+    si = io.StringIO()
+    si.write('map_id,map_name\n')
+    si.write(f"{map_id},{(m[1] if m else '')}\n\n")
+    si.write(','.join(headers)+'\n')
+    for r in rows:
+        line = [str(r[0]), r[1] or '', r[2] or '', str(r[3] or ''), str(r[4] or ''), r[5] or '', r[6] or '', str(r[7] or ''), str(r[8] or '')]
+        si.write(','.join([c.replace(',', ' ') for c in line]) + '\n')
+    output = make_response(si.getvalue())
+    output.headers['Content-Disposition'] = f'attachment; filename=map_{map_id}_report.csv'
+    output.headers['Content-Type'] = 'text/csv'
+    return output
