@@ -1,7 +1,21 @@
 
 {% extends "base.html" %}
 {% block content %}
+
 <h2>Admin • Dispositivos</h2>
+<form class="mb-3" method="post" action="/admin/devices/import" enctype="multipart/form-data">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-6">
+      <label class="form-label">Importar devices via CSV</label>
+      <input type="file" name="file" accept=".csv" class="form-control">
+      <div class="form-text">Cabeçalhos aceitos: code,lat,lng,address,ports,feet,splicer,status,map_id</div>
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-outline-primary w-100">Importar CSV</button>
+    </div>
+  </div>
+</form>
+
 <form method="post" class="mb-3">
   <div class="row g-2">
     <div class="col-md-2">

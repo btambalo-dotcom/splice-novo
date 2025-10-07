@@ -1302,7 +1302,11 @@ def device_edit(device_id):
     if not row:
         abort(404)
     device = dict(id=row[0], map_id=row[1], code=row[2], address=row[3], ports=row[4], feet=row[5], splicer=row[6], status=row[7], lat=row[8], lng=row[9])
-    return render_template('device_edit.html', device=device, maps=maps, assigned=assigned)
+        # fetch tasks for this device
+    cur = sqlite3.connect(DB_PATH).cursor()
+    cur.execute("SELECT id, task_type, notes, status FROM device_tasks WHERE device_id=? ORDER BY id DESC", (device_id,))
+    tasks = cur.fetchall()
+    return render_template('device_edit.html', device=device, maps=maps, assigned=assigned, tasks=tasks)
 
 @app.route('/admin/devices/<int:device_id>/assign', methods=['POST'])
 @login_required
@@ -1316,3 +1320,118 @@ def assign_user_to_device(device_id):
     conn.commit()
     conn.close()
     return redirect(url_for('device_edit', device_id=device_id))
+
+
+# === maps_and_tasks_patch ===
+import csv
+from io import TextIOWrapper
+from flask import send_file
+
+def _ensure_tasks_schema():
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS device_tasks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        device_id INTEGER NOT NULL,
+        task_type TEXT NOT NULL,  -- 'Splice','Tests','Place','Troubleshooting'
+        notes TEXT,
+        status TEXT DEFAULT 'pending', -- 'pending' or 'done'
+        created_by TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+    );""")
+    conn.commit()
+    conn.close()
+
+try:
+    _ensure_tasks_schema()
+except Exception:
+    pass
+
+# List maps (id, name) and link to /map/<id>
+@app.route('/maps')
+@login_required
+def list_maps():
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT id, name, description FROM maps WHERE is_active=1 ORDER BY id DESC")
+    maps = cur.fetchall()
+    conn.close()
+    return render_template('maps.html', maps=maps)
+
+# Device tasks view + quick add from device page
+@app.route('/device/<int:device_id>/tasks', methods=['POST'])
+@login_required
+def device_add_task(device_id):
+    # Anyone with edit permission (or admin) can add task
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    allowed = 1 if is_admin(current_user) else 0
+    if not allowed:
+        cur.execute("SELECT COUNT(*) FROM device_users WHERE device_id=? AND username=?", (device_id, current_user.username))
+        allowed = 1 if cur.fetchone()[0] > 0 else 0
+    if not allowed:
+        conn.close()
+        abort(403)
+    task_type = request.form.get('task_type')
+    notes = request.form.get('notes')
+    cur.execute("INSERT INTO device_tasks (device_id, task_type, notes, created_by) VALUES (?,?,?,?)",
+                (device_id, task_type, notes, current_user.username))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('device_edit', device_id=device_id))
+
+@app.route('/device/<int:device_id>/tasks/<int:task_id>/toggle', methods=['POST'])
+@login_required
+def device_toggle_task(device_id, task_id):
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    # permission
+    allowed = 1 if is_admin(current_user) else 0
+    if not allowed:
+        cur.execute("SELECT COUNT(*) FROM device_users WHERE device_id=? AND username=?", (device_id, current_user.username))
+        allowed = 1 if cur.fetchone()[0] > 0 else 0
+    if not allowed:
+        conn.close()
+        abort(403)
+    # toggle
+    cur.execute("SELECT status FROM device_tasks WHERE id=? AND device_id=?", (task_id, device_id))
+    row = cur.fetchone()
+    if row:
+        new_status = 'done' if row[0] != 'done' else 'pending'
+        cur.execute("UPDATE device_tasks SET status=? WHERE id=?", (new_status, task_id))
+        conn.commit()
+    conn.close()
+    return redirect(url_for('device_edit', device_id=device_id))
+
+# CSV import on admin devices
+@app.route('/admin/devices/import', methods=['POST'])
+@login_required
+def admin_devices_import():
+    if not is_admin(current_user):
+        abort(403)
+    if 'file' not in request.files:
+        flash('Selecione um CSV', 'warning')
+        return redirect(url_for('admin_devices'))
+    f = request.files['file']
+    stream = TextIOWrapper(f.stream, encoding='utf-8')
+    reader = csv.DictReader(stream)
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    count = 0
+    for row in reader:
+        code = row.get('code') or row.get('codigo') or row.get('device')
+        address = row.get('address')
+        ports = row.get('ports')
+        feet = row.get('feet')
+        splicer = row.get('splicer')
+        status = row.get('status')
+        lat = row.get('lat') or row.get('latitude')
+        lng = row.get('lng') or row.get('longitude')
+        map_id = row.get('map_id') or row.get('map')
+        cur.execute("INSERT INTO devices (map_id, code, address, ports, feet, splicer, status, lat, lng, created_by) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    (map_id, code, address, ports, feet, splicer, status, lat, lng, current_user.username))
+        count += 1
+    conn.commit()
+    conn.close()
+    flash(f'Importados {count} dispositivos do CSV.', 'success')
+    return redirect(url_for('admin_devices'))

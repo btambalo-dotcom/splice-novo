@@ -63,7 +63,12 @@
           <a href="{{ url_for('login') }}">Entrar</a>
           <a href="{{ url_for('register') }}">Cadastrar</a>
         {% endif %}
-      </nav>
+      
+    <ul class="navbar-nav ms-auto">
+      <li class="nav-item"><a class="nav-link" href="/maps">Mapas</a></li>
+      <li class="nav-item"><a class="nav-link" href="/admin/devices">Dispositivos</a></li>
+    </ul>
+</nav>
     </div>
   </header>
   <div class="container">

@@ -96,3 +96,47 @@
 
 {% endif %}
 {% endblock %}
+
+<hr class="my-4"/>
+<h4>Tarefas</h4>
+<form method="post" action="{{ url_for('device_add_task', device_id=device.id) }}" class="row g-2">
+  <div class="col-md-3">
+    <select name="task_type" class="form-select">
+      <option value="Splice">Splice</option>
+      <option value="Tests">Tests</option>
+      <option value="Place">Place</option>
+      <option value="Troubleshooting">Troubleshooting</option>
+    </select>
+  </div>
+  <div class="col-md-6">
+    <input name="notes" class="form-control" placeholder="Observações (opcional)">
+  </div>
+  <div class="col-md-2">
+    <button class="btn btn-outline-primary w-100">Adicionar</button>
+  </div>
+</form>
+
+<table class="table table-sm table-striped mt-3">
+  <thead><tr><th>Tarefa</th><th>Notas</th><th>Status</th><th>Ação</th></tr></thead>
+  <tbody>
+  {% set _=[] %}
+  {% for t in tasks %}
+    <tr>
+      <td>{{ t[1] }}</td>
+      <td>{{ t[2] or '' }}</td>
+      <td>
+        {% if t[3]=='done' %}
+          <span class="badge bg-success">Feito</span>
+        {% else %}
+          <span class="badge bg-secondary">Pendente</span>
+        {% endif %}
+      </td>
+      <td>
+        <form method="post" action="{{ url_for('device_toggle_task', device_id=device.id, task_id=t[0]) }}">
+          <button class="btn btn-sm btn-outline-dark">Alternar</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
