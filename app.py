@@ -1302,15 +1302,7 @@ def device_edit(device_id):
     if not row:
         abort(404)
     device = dict(id=row[0], map_id=row[1], code=row[2], address=row[3], ports=row[4], feet=row[5], splicer=row[6], status=row[7], lat=row[8], lng=row[9])
-        # fetch tasks for this device
-    cur = sqlite3.connect(DB_PATH).cursor()
-    cur.execute("SELECT id, task_type, notes, status FROM device_tasks WHERE device_id=? ORDER BY id DESC", (device_id,))
-    tasks = cur.fetchall()
-        cur = sqlite3.connect(DB_PATH).cursor()
-    cur.execute("SELECT id, filename, caption FROM device_photos WHERE device_id=? ORDER BY id DESC", (device_id,))
-    photos = cur.fetchall()
-    return render_template('device_edit.html', device=device, maps=maps, assigned=assigned, tasks=tasks, photos=photos)
-
+    return render_template('device_edit.html', device=device, maps=maps, assigned=assigned, tasks=get_tasks(device_id), photos=get_photos(device_id))
 @app.route('/admin/devices/<int:device_id>/assign', methods=['POST'])
 @login_required
 def assign_user_to_device(device_id):
@@ -1605,3 +1597,29 @@ def map_report_csv(map_id):
     output.headers['Content-Disposition'] = f'attachment; filename=map_{map_id}_report.csv'
     output.headers['Content-Type'] = 'text/csv'
     return output
+
+
+# === helpers_tasks_photos ===
+import sqlite3 as _sqlite3
+
+def get_tasks(device_id):
+    try:
+        conn = _sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute("SELECT id, task_type, notes, status FROM device_tasks WHERE device_id=? ORDER BY id DESC", (device_id,))
+        rows = cur.fetchall()
+        conn.close()
+        return rows
+    except Exception:
+        return []
+
+def get_photos(device_id):
+    try:
+        conn = _sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute("SELECT id, filename, caption FROM device_photos WHERE device_id=? ORDER BY id DESC", (device_id,))
+        rows = cur.fetchall()
+        conn.close()
+        return rows
+    except Exception:
+        return []
