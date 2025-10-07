@@ -1,6 +1,6 @@
 import os, sqlite3
 from contextlib import closing
-from flask import Flask, request, redirect, url_for, render_template, flash, session, send_from_directory, abort, Response
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.routing import BuildError
 
 # === auth_fallback_import ===
@@ -721,3 +721,36 @@ def home():
 @app.route('/health')
 def health():
     return 'ok', 200
+
+
+# --- Minimal auth & dashboard ---
+@app.route('/login', methods=['GET','POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username','').strip()
+        password = request.form.get('password','').strip()
+        if username == 'admin' and password == 'admin':
+            session['username'] = 'admin'
+            session['role'] = 'admin'
+            flash('Bem-vindo, admin!', 'success')
+            return redirect(url_for('dashboard'))
+        flash('Usuário ou senha inválidos.', 'danger')
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('Sessão encerrada.', 'info')
+    return redirect(url_for('login'))
+
+@app.route('/dashboard')
+def dashboard():
+    # se não estiver logado, manda para login
+    if not session.get('username'):
+        return redirect(url_for('login'))
+    links = [
+        ('Mapas', '/maps'),
+        ('Admin Mapas', '/admin/maps'),
+        ('Dispositivos', '/admin/devices'),
+    ]
+    return render_template('dashboard.html', links=links)
