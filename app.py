@@ -1,6 +1,40 @@
 import os, sqlite3
 from contextlib import closing
 from flask import Flask, request, redirect, url_for, render_template, flash, session, send_from_directory, abort, Response
+
+# === auth_fallback_import ===
+try:
+    from flask_login import login_required, current_user
+except Exception:
+    from functools import wraps
+    from flask import session
+    def login_required(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            # permite acesso se usuário estiver logado via sessão; senão, redireciona para login
+            if not session.get('username'):
+                return redirect(url_for('login'))
+            return fn(*args, **kwargs)
+        return wrapper
+    class _User:
+        def __init__(self):
+            self.username = session.get('username')
+            self.is_authenticated = bool(self.username)
+            self.is_admin = session.get('role') == 'admin'
+    class _CurrentUserProxy:
+        @property
+        def username(self): 
+            from flask import session
+            return session.get('username')
+        @property
+        def is_authenticated(self):
+            from flask import session
+            return bool(session.get('username'))
+        @property
+        def is_admin(self):
+            from flask import session
+            return session.get('role') == 'admin'
+    current_user = _CurrentUserProxy()
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
