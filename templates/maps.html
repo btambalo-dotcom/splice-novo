@@ -1,0 +1,16 @@
+
+{% extends "base.html" %}
+{% block content %}
+<h2>Mapas</h2>
+<table class="table table-sm table-striped">
+  <thead><tr><th>ID</th><th>Nome</th><th>Descrição</th><th>Abrir</th></tr></thead>
+  <tbody>
+  {% for m in maps %}
+    <tr>
+      <td>{{ m[0] }}</td><td>{{ m[1] }}</td><td>{{ m[2] or '' }}</td>
+      <td><a class="btn btn-sm btn-primary" href="{{ url_for('map_view', map_id=m[0]) }}">Abrir mapa</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

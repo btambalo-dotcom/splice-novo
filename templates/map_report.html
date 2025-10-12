@@ -1,0 +1,42 @@
+
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center">
+  <h2>Relatório do mapa {{ map_row[1] if map_row else map_id }}</h2>
+  <div>
+    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('map_report_csv', map_id=map_row[0]) }}">Baixar CSV</a>
+    <button class="btn btn-sm btn-outline-secondary" onclick="window.print()">Imprimir / PDF</button>
+  </div>
+</div>
+<p class="text-muted">{{ map_row[2] or '' }}</p>
+<div class="row mb-3">
+  <div class="col"><div class="card"><div class="card-body"><b>Total:</b> {{ total }}</div></div></div>
+  <div class="col"><div class="card"><div class="card-body"><b>Feito:</b> {{ done }}</div></div></div>
+  <div class="col"><div class="card"><div class="card-body"><b>Pendente:</b> {{ pend }}</div></div></div>
+</div>
+<table class="table table-sm table-striped">
+  <thead><tr><th>ID</th><th>Código</th><th>Endereço</th><th>Status</th><th>Ports</th><th>Feet</th><th>Splicer</th><th>Lat</th><th>Lng</th></tr></thead>
+  <tbody>
+  {% for d in devices %}
+    <tr>
+      <td>{{ d[0] }}</td>
+      <td>{{ d[1] or '' }}</td>
+      <td>{{ d[2] or '' }}</td>
+      <td>
+        {% set s=(d[6] or '').lower() %}
+        {% if s in ['feito','ok','done','completed','concluido','concluído'] %}
+          <span class="badge bg-success">Feito</span>
+        {% else %}
+          <span class="badge bg-secondary">Pendente</span>
+        {% endif %}
+      </td>
+      <td>{{ d[3] or '' }}</td>
+      <td>{{ d[4] or '' }}</td>
+      <td>{{ d[5] or '' }}</td>
+      <td>{{ d[7] or '' }}</td>
+      <td>{{ d[8] or '' }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

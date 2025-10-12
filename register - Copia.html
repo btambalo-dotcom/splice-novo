@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Cadastrar</h1>
+<form method="post">
+  <label>Usuário</label>
+  <input type="text" name="username" required>
+  <label>Senha</label>
+  <input type="password" name="password" required>
+  <div class="actions">
+    <button class="btn" type="submit">Criar conta</button>
+    <a class="btn secondary" href="{{ url_for('login') }}">Já tenho conta</a>
+  </div>
+</form>
+{% endblock %}

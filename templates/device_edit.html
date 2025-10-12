@@ -1,0 +1,174 @@
+
+{% extends "base.html" %}
+{% block content %}
+<h2>Dispositivo #{{ device.id }}</h2>
+<form method="post" class="mb-3">
+  <div class="row g-2">
+    <div class="col-md-3">
+      <label class="form-label">Código</label>
+      <input name="code" class="form-control" value="{{ device.code or '' }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Endereço</label>
+      <input name="address" class="form-control" value="{{ device.address or '' }}">
+    </div>
+    <div class="col-md-1">
+      <label class="form-label">Ports</label>
+      <input name="ports" type="number" class="form-control" value="{{ device.ports or '' }}">
+    </div>
+    <div class="col-md-1">
+      <label class="form-label">Feet</label>
+      <input name="feet" type="number" class="form-control" value="{{ device.feet or '' }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Splicer</label>
+      <input name="splicer" class="form-control" value="{{ device.splicer or '' }}">
+    </div>
+    <div class="col-md-1">
+      <label class="form-label">Status</label>
+      <input name="status" class="form-control" value="{{ device.status or '' }}">
+    </div>
+  </div>
+  <div class="row g-2 mt-2">
+    <div class="col-md-2">
+      <label class="form-label">Latitude</label>
+      <input name="lat" class="form-control" value="{{ device.lat or '' }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Longitude</label>
+      <input name="lng" class="form-control" value="{{ device.lng or '' }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Mapa</label>
+      <select name="map_id" class="form-select">
+        <option value="">-- Sem mapa --</option>
+        {% for m in maps %}
+          <option value="{{ m[0] }}" {% if device.map_id==m[0] %}selected{% endif %}>{{ m[1] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2 align-self-end">
+      <button class="btn btn-primary w-100">Salvar</button>
+    </div>
+  </div>
+</form>
+
+<div class="row g-2 mt-2">
+  <div class="col-md-3">
+    <a class="btn btn-outline-primary w-100" target="_blank"
+       href="https://www.google.com/maps/search/?api=1&query={{ device.lat }},{{ device.lng }}">Abrir no Google Maps</a>
+  </div>
+  <div class="col-md-3">
+    <a class="btn btn-outline-secondary w-100" target="_blank"
+       href="http://maps.apple.com/?ll={{ device.lat }},{{ device.lng }}">Abrir no Apple Maps</a>
+  </div>
+</div>
+
+
+<h5>Usuários com permissão para editar</h5>
+<ul>
+  {% for u in assigned %}
+    <li>{{ u }}</li>
+  {% endfor %}
+  {% if not assigned %}<li>Ninguém</li>{% endif %}
+</ul>
+
+{% if current_user.is_admin %}
+<form method="post" action="{{ url_for('assign_user_to_device', device_id=device.id) }}" class="row g-2 mt-2">
+  <div class="col-md-3">
+    <input name="username" class="form-control" placeholder="Usuário para permitir edição">
+  </div>
+  <div class="col-md-2">
+    <button class="btn btn-outline-secondary">Permitir</button>
+  </div>
+</form>
+
+<div class="row g-2 mt-2">
+  <div class="col-md-3">
+    <a class="btn btn-outline-primary w-100" target="_blank"
+       href="https://www.google.com/maps/search/?api=1&query={{ device.lat }},{{ device.lng }}">Abrir no Google Maps</a>
+  </div>
+  <div class="col-md-3">
+    <a class="btn btn-outline-secondary w-100" target="_blank"
+       href="http://maps.apple.com/?ll={{ device.lat }},{{ device.lng }}">Abrir no Apple Maps</a>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+<hr class="my-4"/>
+<h4>Tarefas</h4>
+<form method="post" action="{{ url_for('device_add_task', device_id=device.id) }}" class="row g-2">
+  <div class="col-md-3">
+    <select name="task_type" class="form-select">
+      <option value="Splice">Splice</option>
+      <option value="Tests">Tests</option>
+      <option value="Place">Place</option>
+      <option value="Troubleshooting">Troubleshooting</option>
+    </select>
+  </div>
+  <div class="col-md-6">
+    <input name="notes" class="form-control" placeholder="Observações (opcional)">
+  </div>
+  <div class="col-md-2">
+    <button class="btn btn-outline-primary w-100">Adicionar</button>
+  </div>
+</form>
+
+<table class="table table-sm table-striped mt-3">
+  <thead><tr><th>Tarefa</th><th>Notas</th><th>Status</th><th>Ação</th></tr></thead>
+  <tbody>
+  {% set _=[] %}
+  {% for t in tasks %}
+    <tr>
+      <td>{{ t[1] }}</td>
+      <td>{{ t[2] or '' }}</td>
+      <td>
+        {% if t[3]=='done' %}
+          <span class="badge bg-success">Feito</span>
+        {% else %}
+          <span class="badge bg-secondary">Pendente</span>
+        {% endif %}
+      </td>
+      <td>
+        <form method="post" action="{{ url_for('device_toggle_task', device_id=device.id, task_id=t[0]) }}">
+          <button class="btn btn-sm btn-outline-dark">Alternar</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<hr class="my-4"/>
+<h4>Fotos do dispositivo</h4>
+<form method="post" action="{{ url_for('device_upload_photos', device_id=device.id) }}" enctype="multipart/form-data" class="row g-2">
+  <div class="col-md-6">
+    <input type="file" name="photos" accept=".jpg,.jpeg,.png,.gif,.webp" class="form-control" multiple>
+    <div class="form-text">Envie até 6 imagens por dispositivo.</div>
+  </div>
+  <div class="col-md-4">
+    <input name="captions" class="form-control" placeholder="Legenda (opcional)">
+  </div>
+  <div class="col-md-2">
+    <button class="btn btn-outline-primary w-100">Enviar</button>
+  </div>
+</form>
+
+<div class="row mt-3 g-3">
+{% set _=[] %}
+{% for p in (photos or []) %}
+  <div class="col-6 col-md-3">
+    <div class="card">
+      <img src="{{ url_for('static', filename='uploads/' + p[1]) }}" class="card-img-top" alt="">
+      <div class="card-body p-2">
+        <small class="text-muted">{{ p[2] or '' }}</small>
+        <form method="post" action="{{ url_for('device_delete_photo', device_id=device.id, photo_id=p[0]) }}">
+          <button class="btn btn-sm btn-outline-danger w-100 mt-2">Excluir</button>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endfor %}
+</div>

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Admin - Início{% endblock %}
+{% block content %}
+<h1>Painel do Administrador</h1>
+<div class="admin-buttons">
+  <a class="btn" href="{{ url_for('admin_users') }}">Gerenciar Usuários</a>
+  <a class="btn secondary" href="{{ url_for('admin_records') }}">Registros</a>
+  <a class="btn secondary" href="{{ url_for('admin_reports') }}">Relatórios por Filtro</a>
+  <a class="btn secondary" href="{{ url_for('admin_photos') }}">Baixar Fotos</a>
+ | <a class="btn" href="{{ url_for('admin_workmaps') }}">Mapas de Trabalho</a>
+  <a class="btn secondary" href="{{ url_for('admin_backup') }}" onclick="return confirm('Criar backup do banco agora?')">Backup Agora</a>
+  <a class="btn secondary" href="{{ url_for('admin_backups') }}">Ver Backups</a>
+</div>
+{% endblock %}

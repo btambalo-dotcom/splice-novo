@@ -1,0 +1,87 @@
+
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Admin • Dispositivos</h2>
+<form class="mb-3" method="post" action="/admin/devices/import" enctype="multipart/form-data">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-6">
+      <label class="form-label">Importar devices via CSV</label>
+      <input type="file" name="file" accept=".csv" class="form-control">
+      <div class="form-text">Cabeçalhos aceitos: code,lat,lng,address,ports,feet,splicer,status,map_id</div>
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-outline-primary w-100">Importar CSV</button>
+    </div>
+  </div>
+</form>
+
+<form method="post" class="mb-3">
+  <div class="row g-2">
+    <div class="col-md-2">
+      <label class="form-label">Mapa</label>
+      <select name="map_id" class="form-select">
+        <option value="">-- Sem mapa --</option>
+        {% for m in maps %}
+          <option value="{{m[0]}}">{{m[1]}}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Código</label>
+      <input name="code" class="form-control" placeholder="Ex: MICTH140007">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Endereço</label>
+      <input name="address" class="form-control" placeholder="Address">
+    </div>
+    <div class="col-md-1">
+      <label class="form-label">Ports</label>
+      <input name="ports" type="number" class="form-control">
+    </div>
+    <div class="col-md-1">
+      <label class="form-label">Feet</label>
+      <input name="feet" type="number" class="form-control">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Splicer</label>
+      <input name="splicer" class="form-control" placeholder="Nome do splicer">
+    </div>
+    <div class="col-md-1">
+      <label class="form-label">Status</label>
+      <input name="status" class="form-control" placeholder="ok/x">
+    </div>
+  </div>
+  <div class="row g-2 mt-2">
+    <div class="col-md-2">
+      <label class="form-label">Latitude</label>
+      <input name="lat" class="form-control" placeholder="-23.55">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Longitude</label>
+      <input name="lng" class="form-control" placeholder="-46.63">
+    </div>
+    <div class="col-md-2 align-self-end">
+      <button class="btn btn-primary w-100">Salvar</button>
+    </div>
+  </div>
+</form>
+
+<table class="table table-sm table-striped">
+  <thead>
+    <tr><th>ID</th><th>Código</th><th>Mapa</th><th>Endereço</th><th>Status</th><th>Ações</th></tr>
+  </thead>
+  <tbody>
+  {% for d in devices %}
+    <tr>
+      <td>{{ d[0] }}</td>
+      <td>{{ d[1] }}</td>
+      <td>{{ d[2] }}</td>
+      <td>{{ d[3] }}</td>
+      <td>{{ d[4] }}</td>
+      <td><a class="btn btn-outline-secondary btn-sm" href="{{ url_for('device_edit', device_id=d[0]) }}">Editar</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

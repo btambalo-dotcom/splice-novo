@@ -1,0 +1,35 @@
+
+{% extends "base.html" %}
+{% block content %}
+<h2>Admin • Mapas</h2>
+<form method="post" class="mb-3">
+  <div class="row g-2">
+    <div class="col-md-5">
+      <label class="form-label">Nome</label>
+      <input name="name" class="form-control" required>
+    </div>
+    <div class="col-md-5">
+      <label class="form-label">Descrição</label>
+      <input name="description" class="form-control">
+    </div>
+    <div class="col-md-2 align-self-end">
+      <button class="btn btn-primary w-100">Criar mapa</button>
+    </div>
+  </div>
+</form>
+
+<table class="table table-sm table-striped">
+  <thead><tr><th>ID</th><th>Nome</th><th>Descrição</th><th>Status</th><th>Abrir</th></tr></thead>
+  <tbody>
+  {% for m in maps %}
+    <tr>
+      <td>{{ m[0] }}</td>
+      <td>{{ m[1] }}</td>
+      <td>{{ m[2] or '' }}</td>
+      <td>{{ 'Ativo' if m[3]==1 else 'Inativo' }}</td>
+      <td><a class="btn btn-sm btn-outline-primary" href="{{ url_for('map_view', map_id=m[0]) }}">Abrir mapa</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

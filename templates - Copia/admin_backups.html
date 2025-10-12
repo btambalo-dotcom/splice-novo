@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Backups{% endblock %}
+{% block content %}
+<h1>Backups</h1>
+<p>
+  <a class="btn" href="{{ url_for('admin_backup') }}">Criar backup agora</a>
+  <a class="btn secondary" href="{{ url_for('admin_home') }}">Voltar ao Admin</a>
+</p>
+<table class="table">
+  <thead>
+    <tr><th>Arquivo</th><th>Tamanho</th><th>Modificado</th><th>Ações</th></tr>
+  </thead>
+  <tbody>
+  {% if files %}
+    {% for f in files %}
+    <tr>
+      <td>{{ f.name }}</td>
+      <td>{{ (f.size/1024)|round(1) }} KB</td>
+      <td>{{ f.mtime|int | datetime }}</td>
+      <td>
+        <a class="btn" href="{{ url_for('admin_backup_download', name=f.name) }}">Baixar</a>
+        <form method="post" action="{{ url_for('admin_backup_delete', name=f.name) }}" style="display:inline" onsubmit="return confirm('Remover {{ f.name }}?')">
+          <button class="btn secondary">Apagar</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  {% else %}
+    <tr><td colspan="4">Nenhum backup encontrado.</td></tr>
+  {% endif %}
+  </tbody>
+</table>
+{% endblock %}

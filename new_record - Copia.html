@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Novo Registro</h1>
+<form method="post" enctype="multipart/form-data">
+  <label>Nome do dispositivo</label>
+  <input type="text" name="device_name" placeholder="Ex.: OTE-1234" required>
+  <label>Número de fusões</label>
+  <input type="number" name="fusion_count" min="0" step="1" required>
+  <label>Fotos (até 6 imagens)</label>
+  <input type="file" name="photos" accept="image/*" multiple>
+  <small>Tipos permitidos: png, jpg, jpeg, gif, webp</small>
+  <div class="actions">
+    <button class="btn" type="submit">Salvar</button>
+    <a class="btn secondary" href="{{ url_for('dashboard') }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

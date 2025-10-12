@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Registro: {{ rec['device_name'] }}</h1>
+<p><strong>Fusões:</strong> {{ rec['fusion_count'] }}</p>
+<p><strong>Criado em:</strong> {{ rec['created_at'] }}</p>
+
+<div class="thumbs">
+  {% if photos %}
+    {% for p in photos %}
+      <a href="{{ url_for('uploaded_file', filename=p['filename']) }}" target="_blank">
+        <img src="{{ url_for('uploaded_file', filename=p['filename']) }}" alt="foto">
+      </a>
+    {% endfor %}
+  {% else %}
+    <p>Sem fotos anexadas.</p>
+  {% endif %}
+</div>
+
+<div class="actions">
+  <a class="btn secondary" href="{{ url_for('dashboard') }}">Voltar</a>
+</div>
+{% endblock %}
